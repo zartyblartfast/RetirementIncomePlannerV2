@@ -22,6 +22,7 @@ import type {
 
 import { calculateTax, grossUp } from './tax';
 import { normalizeConfig, computeAnnualTarget } from './strategies';
+import { validateConfig, validateStrategyOutput } from './validation';
 
 // ------------------------------------------------------------------ //
 //  Helpers
@@ -211,6 +212,12 @@ export function runProjection(
   const cfg: PlannerConfig = JSON.parse(JSON.stringify(inputCfg));
   normalizeConfig(cfg);
 
+  // Validate config invariants
+  const configErrors = validateConfig(cfg);
+  if (configErrors.length > 0) {
+    console.warn('[projection] config validation warnings:', configErrors);
+  }
+
   const { includeMonthly = false, initialStrategyState = null } = options;
   const taxCfg = cfg.tax;
   const endAgeCfg = cfg.personal.end_age;
@@ -275,12 +282,12 @@ export function runProjection(
   const isPostRetirement = allAsofAbs.length > 0 && latestAsof >= retAbs;
 
   // End absolute month
-  const configEndAge = endAgeCfg;
-  let endAge = endAgeCfg;
+  const configEndAge = endAgeCfg;  // user's plan end — NEVER mutated
+  let projectionEndAge = (cfg as unknown as Record<string, unknown>).projection_end_age as number | undefined ?? endAgeCfg;
   if (includeMonthly) {
-    endAge = Math.min(120, Math.max(endAge, 120));
+    projectionEndAge = Math.min(120, Math.max(projectionEndAge, 120));
   }
-  const endAbs = anchorAbs + (endAge - anchorAge + 1) * 12 - 1;
+  const endAbs = anchorAbs + (projectionEndAge - anchorAge + 1) * 12 - 1;
 
   // ---- Build guaranteed income ---- //
   const guaranteed: GuaranteedItem[] = [];
@@ -529,7 +536,12 @@ export function runProjection(
       } else {
         const [targetDict, newState] = computeAnnualTarget(
           strategyId, strategyParams, strategyState,
-          portfolioValue, cpi, yearAge);
+          portfolioValue, cpi, yearAge, configEndAge);
+        // Validate strategy output
+        const stratErrors = validateStrategyOutput(targetDict, strategyId);
+        if (stratErrors.length > 0) {
+          console.warn(`[projection] strategy output validation age ${yearAge}:`, stratErrors);
+        }
         strategyState = newState;
         strategyMode = targetDict.mode;
         strategyAmount = targetDict.annual_amount;

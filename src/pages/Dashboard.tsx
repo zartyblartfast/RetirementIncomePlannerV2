@@ -48,7 +48,7 @@ export default function Dashboard() {
       <SummaryCards summary={result.summary} />
 
       {/* Charts */}
-      <ProjectionChart years={result.years} />
+      <ProjectionChart years={result.years} summary={result.summary} strategyName={getStrategyDisplayName(strategyId)} />
 
       {/* Year-by-year table */}
       <div>

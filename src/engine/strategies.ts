@@ -66,7 +66,6 @@ export const STRATEGIES: Record<string, StrategyDefinition> = {
     params: [
       { key: 'assumed_real_return_pct', label: 'Assumed Real Return (%)', type: 'number', step: 0.5, default: 3.0,
         tooltip: 'The real (after-inflation) return ARVA assumes when calculating withdrawals.' },
-      { key: 'target_end_age', label: 'Target End Age', type: 'number', step: 1, default: 90, sandbox_hidden: true },
     ],
   },
   arva_guardrails: {
@@ -75,7 +74,6 @@ export const STRATEGIES: Record<string, StrategyDefinition> = {
     params: [
       { key: 'assumed_real_return_pct', label: 'Assumed Real Return (%)', type: 'number', step: 0.5, default: 3.0,
         tooltip: 'The real (after-inflation) return ARVA assumes when calculating withdrawals.' },
-      { key: 'target_end_age', label: 'Target End Age', type: 'number', step: 1, default: 90, sandbox_hidden: true },
       { key: 'max_annual_increase_pct', label: 'Max Annual Increase (%)', type: 'number', step: 1.0, default: 10.0,
         tooltip: 'Ceiling: the maximum percentage ARVA income can rise year-to-year.' },
       { key: 'max_annual_decrease_pct', label: 'Max Annual Decrease (%)', type: 'number', step: 1.0, default: 10.0,
@@ -109,12 +107,17 @@ type ComputeFn = (
   state: StrategyState,
   portfolioValue: number,
   cpiRate: number,
-  currentAge?: number,
+  currentAge: number,
+  planEndAge: number,
 ) => [StrategyTarget, StrategyState];
 
 function computeFixedTarget(
   params: Record<string, number>,
   state: StrategyState,
+  _portfolioValue: number,
+  _cpiRate: number,
+  _currentAge: number,
+  _planEndAge: number,
 ): [StrategyTarget, StrategyState] {
   if (state === null) {
     state = { current_target: params.net_annual ?? 30000 };
@@ -129,6 +132,9 @@ function computeFixedPercentage(
   params: Record<string, number>,
   state: StrategyState,
   portfolioValue: number,
+  _cpiRate: number,
+  _currentAge: number,
+  _planEndAge: number,
 ): [StrategyTarget, StrategyState] {
   const rate = (params.withdrawal_rate ?? 4.0) / 100;
   const gross = portfolioValue * rate;
@@ -141,6 +147,8 @@ function computeVanguardDynamic(
   state: StrategyState,
   _portfolioValue: number,
   cpiRate: number,
+  _currentAge: number,
+  _planEndAge: number,
 ): [StrategyTarget, StrategyState] {
   const maxUp = (params.max_increase_pct ?? 5.0) / 100;
   const maxDown = (params.max_decrease_pct ?? 2.5) / 100;
@@ -166,6 +174,8 @@ function computeGuytonKlinger(
   state: StrategyState,
   portfolioValue: number,
   cpiRate: number,
+  _currentAge: number,
+  _planEndAge: number,
 ): [StrategyTarget, StrategyState] {
   const upper = (params.upper_guardrail_pct ?? 5.5) / 100;
   const lower = (params.lower_guardrail_pct ?? 3.5) / 100;
@@ -202,15 +212,15 @@ function computeArva(
   state: StrategyState,
   portfolioValue: number,
   _cpiRate: number,
-  currentAge?: number,
+  currentAge: number,
+  planEndAge: number,
 ): [StrategyTarget, StrategyState] {
   const r = (params.assumed_real_return_pct ?? 3.0) / 100;
-  const targetEndAge = params.target_end_age ?? 90;
 
   if (state === null) state = {};
 
-  // +1 so ARVA plans income THROUGH end_age (inclusive)
-  const remainingYears = Math.max(1, targetEndAge - (currentAge ?? targetEndAge - 1) + 1);
+  // +1 so ARVA plans income THROUGH planEndAge (inclusive)
+  const remainingYears = Math.max(1, planEndAge - currentAge + 1);
   const remainingMonths = remainingYears * 12;
   const monthlyR = Math.pow(1 + r, 1 / 12) - 1;
   const monthlyPmt = pmt(portfolioValue, monthlyR, remainingMonths);
@@ -225,15 +235,15 @@ function computeArvaGuardrails(
   state: StrategyState,
   portfolioValue: number,
   _cpiRate: number,
-  currentAge?: number,
+  currentAge: number,
+  planEndAge: number,
 ): [StrategyTarget, StrategyState] {
   const r = (params.assumed_real_return_pct ?? 3.0) / 100;
-  const targetEndAge = params.target_end_age ?? 90;
   const maxUp = (params.max_annual_increase_pct ?? 10.0) / 100;
   const maxDown = (params.max_annual_decrease_pct ?? 10.0) / 100;
 
-  // +1 so ARVA plans income THROUGH end_age (inclusive)
-  const remainingYears = Math.max(1, targetEndAge - (currentAge ?? targetEndAge - 1) + 1);
+  // +1 so ARVA plans income THROUGH planEndAge (inclusive)
+  const remainingYears = Math.max(1, planEndAge - currentAge + 1);
   const remainingMonths = remainingYears * 12;
   const monthlyR = Math.pow(1 + r, 1 / 12) - 1;
   const monthlyPmt = pmt(portfolioValue, monthlyR, remainingMonths);
@@ -258,12 +268,12 @@ function computeArvaGuardrails(
 // ------------------------------------------------------------------ //
 
 const COMPUTE_MAP: Record<string, ComputeFn> = {
-  fixed_target: (p, s) => computeFixedTarget(p, s),
-  fixed_percentage: (p, s, pv) => computeFixedPercentage(p, s, pv),
-  vanguard_dynamic: (p, s, pv, cpi) => computeVanguardDynamic(p, s, pv, cpi),
-  guyton_klinger: (p, s, pv, cpi) => computeGuytonKlinger(p, s, pv, cpi),
-  arva: (p, s, pv, cpi, age) => computeArva(p, s, pv, cpi, age),
-  arva_guardrails: (p, s, pv, cpi, age) => computeArvaGuardrails(p, s, pv, cpi, age),
+  fixed_target: computeFixedTarget,
+  fixed_percentage: computeFixedPercentage,
+  vanguard_dynamic: computeVanguardDynamic,
+  guyton_klinger: computeGuytonKlinger,
+  arva: computeArva,
+  arva_guardrails: computeArvaGuardrails,
 };
 
 export function computeAnnualTarget(
@@ -272,10 +282,11 @@ export function computeAnnualTarget(
   state: StrategyState,
   portfolioValue: number,
   cpiRate: number,
-  currentAge?: number,
+  currentAge: number,
+  planEndAge: number,
 ): [StrategyTarget, StrategyState] {
   const fn = COMPUTE_MAP[strategyId] ?? COMPUTE_MAP.fixed_target!;
-  return fn(params, state, portfolioValue, cpiRate, currentAge);
+  return fn(params, state, portfolioValue, cpiRate, currentAge, planEndAge);
 }
 
 // ------------------------------------------------------------------ //
@@ -311,7 +322,6 @@ export function normalizeConfig(cfg: PlannerConfig): PlannerConfig {
           params[p.key] = p.default;
         }
       }
-      params.target_end_age = cfg.personal?.end_age ?? 90;
       cfg.drawdown_strategy_params = params;
     } else {
       const entry = STRATEGIES[sid];

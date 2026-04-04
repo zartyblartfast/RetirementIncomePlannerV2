@@ -107,7 +107,7 @@ describe('Projection — ARVA strategy', () => {
   const cfg: PlannerConfig = {
     ...JSON.parse(JSON.stringify(SIMPLE_CONFIG)),
     drawdown_strategy: 'arva',
-    drawdown_strategy_params: { assumed_real_return_pct: 3, target_end_age: 90 },
+    drawdown_strategy_params: { assumed_real_return_pct: 3 },
   };
   const result = runProjection(cfg);
 

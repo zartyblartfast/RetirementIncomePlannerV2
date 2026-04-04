@@ -247,11 +247,13 @@ export default function ConfigPanel() {
                       defaults[p.key] = p.default;
                     }
                   }
-                  updateConfig(prev => ({
-                    ...prev,
-                    drawdown_strategy: newId,
-                    drawdown_strategy_params: defaults,
-                  }));
+                  updateConfig(prev => {
+                    return {
+                      ...prev,
+                      drawdown_strategy: newId,
+                      drawdown_strategy_params: defaults,
+                    };
+                  });
                 }}
                 className="input-field"
               >
@@ -438,6 +440,46 @@ export default function ConfigPanel() {
                     title="Remove pot"
                   >
                     <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Withdrawal Priority */}
+          <div>
+            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+              Withdrawal Priority
+            </h4>
+            <p className="text-xs text-gray-400 mb-2">Top = withdrawn first. Use arrows to reorder.</p>
+            <div className="space-y-1">
+              {config.withdrawal_priority.map((name, i) => (
+                <div key={name} className="flex items-center gap-2 bg-gray-50 rounded px-3 py-1.5 text-sm text-gray-700">
+                  <span className="text-xs font-medium text-gray-400 w-4">{i + 1}.</span>
+                  <span className="flex-1">{name}</span>
+                  <button
+                    disabled={i === 0}
+                    onClick={() => updateConfig(prev => {
+                      const next = [...prev.withdrawal_priority];
+                      [next[i - 1]!, next[i]!] = [next[i]!, next[i - 1]!];
+                      return { ...prev, withdrawal_priority: next };
+                    })}
+                    className="p-0.5 text-gray-400 hover:text-gray-700 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                    title="Move up"
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    disabled={i === config.withdrawal_priority.length - 1}
+                    onClick={() => updateConfig(prev => {
+                      const next = [...prev.withdrawal_priority];
+                      [next[i]!, next[i + 1]!] = [next[i + 1]!, next[i]!];
+                      return { ...prev, withdrawal_priority: next };
+                    })}
+                    className="p-0.5 text-gray-400 hover:text-gray-700 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                    title="Move down"
+                  >
+                    <ChevronDown className="w-4 h-4" />
                   </button>
                 </div>
               ))}

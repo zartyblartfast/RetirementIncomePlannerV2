@@ -72,7 +72,7 @@ export const DEFAULT_CONFIG: PlannerConfig = {
       values_as_of: '2025-03',
     },
   ],
-  withdrawal_priority: ['Employer DC Pot', 'Consolidated DC Pot', 'ISA'],
+  withdrawal_priority: ['Consolidated DC Pot', 'Employer DC Pot', 'ISA'],
   tax: {
     regime: 'Custom',
     personal_allowance: 14500,
