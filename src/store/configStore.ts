@@ -11,74 +11,57 @@ import type { PlannerConfig } from '../engine/types';
 const STORAGE_KEY = 'rip_v2_config';
 
 // ------------------------------------------------------------------ //
-//  Default config (same as V1 config_default.json)
+//  Default config — generic example for new users
 // ------------------------------------------------------------------ //
 
 export const DEFAULT_CONFIG: PlannerConfig = {
   personal: {
-    date_of_birth: '1958-07',
-    retirement_date: '2027-04',
-    retirement_age: 68,
+    date_of_birth: '1965-01',
+    retirement_date: '2032-01',
+    retirement_age: 67,
     end_age: 90,
     currency: 'GBP',
   },
   target_income: {
-    net_annual: 30000,
-    cpi_rate: 0.03,
+    net_annual: 25000,
+    cpi_rate: 0.025,
   },
   guaranteed_income: [
     {
-      name: 'UK State Pension',
-      gross_annual: 13680,
-      indexation_rate: 0.035,
-      start_date: '2027-04',
+      name: 'State Pension',
+      gross_annual: 11500,
+      indexation_rate: 0.025,
+      start_date: '2032-01',
       end_date: null,
       taxable: true,
-      values_as_of: '2025-03',
-    },
-    {
-      name: 'BP Pension (DB)',
-      gross_annual: 10052.28,
-      indexation_rate: 0.03,
-      start_date: '2027-04',
-      end_date: null,
-      taxable: true,
-      values_as_of: '2025-03',
+      values_as_of: '2025-01',
     },
   ],
   dc_pots: [
     {
-      name: 'Consolidated DC Pot',
-      starting_balance: 180000,
+      name: 'DC Pension',
+      starting_balance: 200000,
       growth_rate: 0.04,
       annual_fees: 0.005,
       tax_free_portion: 0.25,
-      values_as_of: '2025-03',
-    },
-    {
-      name: 'Employer DC Pot',
-      starting_balance: 95000,
-      growth_rate: 0.04,
-      annual_fees: 0.005,
-      tax_free_portion: 0.25,
-      values_as_of: '2025-03',
+      values_as_of: '2025-01',
     },
   ],
   tax_free_accounts: [
     {
       name: 'ISA',
-      starting_balance: 20000,
+      starting_balance: 30000,
       growth_rate: 0.035,
-      values_as_of: '2025-03',
+      values_as_of: '2025-01',
     },
   ],
-  withdrawal_priority: ['Consolidated DC Pot', 'Employer DC Pot', 'ISA'],
+  withdrawal_priority: ['DC Pension', 'ISA'],
   tax: {
     regime: 'Custom',
-    personal_allowance: 14500,
+    personal_allowance: 12570,
     bands: [
-      { name: 'Lower rate', width: 6500, rate: 0.1 },
-      { name: 'Higher rate', width: null, rate: 0.2 },
+      { name: 'Basic rate', width: 37700, rate: 0.2 },
+      { name: 'Higher rate', width: null, rate: 0.4 },
     ],
     tax_cap_enabled: false,
     tax_cap_amount: 200000,
